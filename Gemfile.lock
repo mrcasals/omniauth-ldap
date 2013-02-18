@@ -1,7 +1,7 @@
 GIT
-  remote: git://github.com/ruby-ldap/ruby-net-ldap.git
-  revision: 8a182675f4f777fa15bdffab64ead773e034b7d0
-  branch: master
+  remote: git://github.com/teambox/ruby-net-ldap.git
+  revision: f1b4bddf2ccee457fd8c4a9a7f0f757f7a48ed1d
+  branch: teambox
   specs:
     net-ldap (0.4.0)
 
