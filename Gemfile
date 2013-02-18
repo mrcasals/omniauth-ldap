@@ -1,4 +1,4 @@
-gem "net-ldap", :git => "git://github.com/ruby-ldap/ruby-net-ldap.git", :branch => "master"
+gem "net-ldap", :git => "git://github.com/teambox/ruby-net-ldap.git", :branch => "teambox"
 
 source 'http://rubygems.org'
 
