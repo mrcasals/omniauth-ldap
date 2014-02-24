@@ -86,6 +86,14 @@ module OmniAuth
         result
       end
 
+      def bind(args = {})
+        result = false
+        @connection.open do |me|
+          result = me.search args
+        end
+        result
+      end
+
       private
       def ensure_method(method)
           method ||= "plain"

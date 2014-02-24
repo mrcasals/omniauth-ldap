@@ -1,5 +1,14 @@
 # OmniAuth LDAP
 
+== Teambox Fork
+
+Branches
+--------
+
+master  - follows intridea upstream
+teambox - Our master branch (contains custom changes)
+develop - Our develop branch (forked from teambox)
+
 == LDAP
 
 Use the LDAP strategy as a middleware in your application:
