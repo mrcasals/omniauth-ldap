@@ -54,7 +54,7 @@ describe "OmniAuth::LDAP::Adaptor" do
     end
 
     it 'should allow multiples connection with simple' do
-      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: ['sAMAccountName', 'sAMAccountName'], bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2']})
+      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: 'sAMAccountName', bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2']})
       expect(adaptor.connections.length).to eq(2)
       connection1 = adaptor.connections.first
       connection2 = adaptor.connections.last
@@ -71,7 +71,7 @@ describe "OmniAuth::LDAP::Adaptor" do
     end
 
     it 'should allow setting up multiple ldap connections with sasl-gss' do
-      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: ['sAMAccountName', 'sAMAccountName'], bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2'], try_sasl: [true, true], sasl_mechanisms: [["GSS-SPNEGO"], ["GSS-SPNEGO"]]})
+      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: 'sAMAccountName', bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2'], try_sasl: [true, true], sasl_mechanisms: [["GSS-SPNEGO"], ["GSS-SPNEGO"]]})
       expect(adaptor.connections.length).to eq(2)
       connection1 = adaptor.connections.first
       connection2 = adaptor.connections.last
@@ -83,7 +83,6 @@ describe "OmniAuth::LDAP::Adaptor" do
       expect(connection1.instance_variable_get('@auth')[:mechanism]).to eq('GSS-SPNEGO')
       expect(connection1.instance_variable_get('@auth')[:initial_credential]).to match(/^NTLMSSP/)
       expect(connection1.instance_variable_get('@auth')[:challenge_response]).not_to be_nil
-
 
       expect(connection2.host).to eq('192.168.1.146')
       expect(connection2.port).to eq(389)

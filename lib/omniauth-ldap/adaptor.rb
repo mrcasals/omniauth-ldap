@@ -40,8 +40,9 @@ module OmniAuth
       def initialize(configuration={})
         Adaptor.validate(configuration)
         @configuration = configuration.dup
-        @configuration[:allow_anonymous] ||= false
+        @configuration[:allow_anonymous] ||= [false]
         @logger = @configuration.delete(:logger)
+
         VALID_ADAPTER_CONFIGURATION_KEYS.each do |name|
           if name == :sasl_mechanisms
             if Array(@configuration[name]).first.kind_of?(Array)
@@ -49,6 +50,11 @@ module OmniAuth
             end
 
             next instance_variable_set("@#{name}", [@configuration[name]])
+          end
+
+          # These are common to all connections
+          if [:uid, :name_proc, :filter].any? {|key| key == name}
+            next instance_variable_set("@#{name}", @configuration[name])
           end
 
           instance_variable_set("@#{name}", Array(@configuration[name]))
@@ -92,7 +98,7 @@ module OmniAuth
         @connections.detect do |connection|
           begin
             connection.open do |me|
-              rs = me.search args
+              rs = me.search args.clone
               if rs and rs.first and dn = rs.first.dn
                 password = args[:password]
                 method = args[:method] || @method[connection_index]
