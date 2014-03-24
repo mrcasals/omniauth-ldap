@@ -13,7 +13,7 @@ module OmniAuth
       class AuthenticationError < StandardError; end
       class ConnectionError < StandardError; end
 
-      VALID_ADAPTER_CONFIGURATION_KEYS = [:host, :port, :method, :bind_dn, :password, :try_sasl, :sasl_mechanisms, :uid, :base, :allow_anonymous, :filter]
+      VALID_ADAPTER_CONFIGURATION_KEYS = [:host, :port, :method, :bind_dn, :password, :try_sasl, :sasl_mechanisms, :uid, :base, :allow_anonymous, :filter, :name_proc]
 
       # A list of needed keys. Possible alternatives are specified using sub-lists.
       MUST_HAVE_KEYS = [:host, :port, :method, [:uid, :filter], :base]
@@ -26,6 +26,7 @@ module OmniAuth
 
       attr_accessor :bind_dn, :password
       attr_reader :connection, :connections, :uid, :base, :auth, :filter
+
       def self.validate(configuration={})
         message = []
         MUST_HAVE_KEYS.each do |names|
@@ -37,6 +38,7 @@ module OmniAuth
         end
         raise ArgumentError.new(message.join(",") +" MUST be provided") unless message.empty?
       end
+
       def initialize(configuration={})
         Adaptor.validate(configuration)
         @configuration = configuration.dup
@@ -52,18 +54,15 @@ module OmniAuth
             next instance_variable_set("@#{name}", [@configuration[name]])
           end
 
-          # These are common to all connections
-          if [:uid, :name_proc, :filter].any? {|key| key == name}
-            next instance_variable_set("@#{name}", @configuration[name])
-          end
-
           instance_variable_set("@#{name}", Array(@configuration[name]))
         end
 
         @connections ||= []
 
         @host.each_with_index do |_, index|
+          @name_proc[index] = ensure_name_proc(@name_proc[index])
           method = ensure_method(@method[index])
+
           config = {
             :host => @host[index],
             :port => @port[index],
@@ -88,16 +87,19 @@ module OmniAuth
       end
 
       #:base => "dc=yourcompany, dc=com",
-      # :filter => "(mail=#{user})",
+      # :filter => "(mail=#{user})" (optional),
+      # :username => foo,
       # :password => psw
       def bind_as(args = {})
         result = false
 
         connection_index = 0
-
         @connections.detect do |connection|
           begin
             connection.open do |me|
+
+              apply_default_filter(args, connection_index)
+
               rs = me.search args.clone
               if rs and rs.first and dn = rs.first.dn
                 password = args[:password]
@@ -106,8 +108,8 @@ module OmniAuth
                 if method == 'sasl'
                 result = rs.first if me.bind(sasl_auths({:username => dn,
                                                          :password => password,
-                                                         :sasl_mechanisms => @sasl_mechanisms[index],
-                                                         :host            => @host[index]}).first)
+                                                         :sasl_mechanisms => @sasl_mechanisms[connection_index],
+                                                         :host            => @host[connection_index]}).first)
                 else
                 result = rs.first if me.bind(:method => :simple, :username => dn,
                                     :password => password)
@@ -126,6 +128,7 @@ module OmniAuth
 
       def bind(args = {})
         result = false
+        apply_default_filter(args)
         @connections.detect do |connection|
           begin
             connection.open do |me|
@@ -139,6 +142,24 @@ module OmniAuth
       end
 
       private
+
+      def apply_default_filter(args, index)
+        return if args[:filter]
+        args[:filter] = default_filter(args[:username],
+                                       self.filter[index],
+                                       @uid[index],
+                                       @name_proc[index])
+        puts "APPLYING DEFAULT FILTER: #{args[:filter]}"
+      end
+
+      def default_filter(username, filter, uid, name_proc)
+        if filter and !filter.empty?
+          Net::LDAP::Filter.construct(filter % {username: name_proc.call(username)})
+        else
+          Net::LDAP::Filter.eq(uid, name_proc.call(username))
+        end
+      end
+
       def ensure_method(method)
           method ||= "plain"
           normalized_method = method.to_s.downcase.to_sym
@@ -147,6 +168,10 @@ module OmniAuth
           available_methods = METHOD.keys.collect {|m| m.inspect}.join(", ")
           format = "%s is not one of the available connect methods: %s"
           raise ConfigurationError, format % [method.inspect, available_methods]
+      end
+
+      def ensure_name_proc(name_proc)
+        name_proc || lambda {|n| n}
       end
 
       def sasl_auths(options={})

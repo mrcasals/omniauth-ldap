@@ -53,8 +53,8 @@ describe "OmniAuth::LDAP::Adaptor" do
       adaptor.connection.instance_variable_get('@auth')[:challenge_response].should_not be_nil
     end
 
-    it 'should allow multiples connection with simple' do
-      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: 'sAMAccountName', bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2']})
+    it 'should allow multiple connections with simple' do
+      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389],uid: ['sAMAccountName', 'uid'], bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2']})
       expect(adaptor.connections.length).to eq(2)
       connection1 = adaptor.connections.first
       connection2 = adaptor.connections.last
@@ -71,7 +71,7 @@ describe "OmniAuth::LDAP::Adaptor" do
     end
 
     it 'should allow setting up multiple ldap connections with sasl-gss' do
-      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: 'sAMAccountName', bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2'], try_sasl: [true, true], sasl_mechanisms: [["GSS-SPNEGO"], ["GSS-SPNEGO"]]})
+      adaptor = OmniAuth::LDAP::Adaptor.new({host: ["192.168.1.145", "192.168.1.146"], method: ['plain','plain'], base: ['ou=int1, dc=intridea, dc=com', 'ou=int2, dc=intridea, dc=com' ], port: [389, 389], uid: ['sAMAccountName', 'uid'], bind_dn: ['bind_dn1', 'bind_dn2'], password: ['password1', 'password2'], try_sasl: [true, true], sasl_mechanisms: [["GSS-SPNEGO"], ["GSS-SPNEGO"]]})
       expect(adaptor.connections.length).to eq(2)
       connection1 = adaptor.connections.first
       connection2 = adaptor.connections.last
@@ -95,13 +95,14 @@ describe "OmniAuth::LDAP::Adaptor" do
   end
 
   describe 'bind_as' do
-    let(:args) { {:filter => Net::LDAP::Filter.eq('sAMAccountName', 'username'), :password => 'password', :size => 1} }
+    let(:args) { {:username => 'foo', :password => 'password', :size => 1} }
+    let(:args_with_filter) { {:filter => Net::LDAP::Filter.eq('sAMAccountName', 'foo')}.merge(args) }
     let(:rs) { Struct.new(:dn).new('new dn') }
 
     it 'should bind simple' do
       adaptor = OmniAuth::LDAP::Adaptor.new({host: "192.168.1.126", method: 'plain', base: 'dc=score, dc=local', port: 389, uid: 'sAMAccountName', bind_dn: 'bind_dn', password: 'password'})
       adaptor.connection.should_receive(:open).and_yield(adaptor.connection)
-      adaptor.connection.should_receive(:search).with(args).and_return([rs])
+      adaptor.connection.should_receive(:search).with(args_with_filter).and_return([rs])
       adaptor.connection.should_receive(:bind).with({:username => 'new dn', :password => args[:password], :method => :simple}).and_return(true)
       adaptor.bind_as(args).should == rs
     end
