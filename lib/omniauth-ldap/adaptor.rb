@@ -149,7 +149,6 @@ module OmniAuth
                                        self.filter[index],
                                        @uid[index],
                                        @name_proc[index])
-        puts "APPLYING DEFAULT FILTER: #{args[:filter]}"
       end
 
       def default_filter(username, filter, uid, name_proc)

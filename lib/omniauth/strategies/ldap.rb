@@ -39,10 +39,11 @@ module OmniAuth
 
         return fail!(:missing_credentials) if missing_credentials?
         begin
-          @ldap_user_info = @adaptor.bind_as(:size => 1, :username => request['username'], :password => request['password'])
+          @credentials = {username: request['username'], password: request['password']}
+          @ldap_user_info = @adaptor.bind_as({:size => 1}.merge(@credentials))
           return fail!(:invalid_credentials) if !@ldap_user_info
 
-          @user_info = self.class.map_user(@@config, @ldap_user_info)
+          @user_info = self.class.map_user(@@config, @ldap_user_info).merge(@credentials)
           super
         rescue Exception => e
           return fail!(:ldap_error, e)
@@ -54,6 +55,9 @@ module OmniAuth
       }
       info {
         @user_info
+      }
+      credentials {
+        @credentials
       }
       extra {
         { :raw_info => @ldap_user_info }
