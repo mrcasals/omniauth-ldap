@@ -128,7 +128,6 @@ module OmniAuth
 
       def bind(args = {})
         result = false
-        apply_default_filter(args)
         @connections.detect do |connection|
           begin
             connection.open do |me|
