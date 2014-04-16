@@ -86,10 +86,17 @@ module OmniAuth
         end
       end
 
-      #:base => "dc=yourcompany, dc=com",
-      # :filter => "(mail=#{user})" (optional),
-      # :username => foo,
-      # :password => psw
+      # Attempt to bind to server using supplied
+      # username and password.
+      #
+      # example of args:
+      #  :base => "dc=yourcompany, dc=com",
+      #  :filter => "(mail=#{user})" (optional),
+      #  :username => foo,
+      #  :password => psw
+      #
+      # @param args [Hash]
+      # @return [Boolean]
       def bind_as(args = {})
         result = false
 
@@ -126,6 +133,10 @@ module OmniAuth
         result
       end
 
+      # Attempt to connect to LDAP server
+      #
+      # @param args [Hash]
+      # @return [Boolean]
       def bind(args = {})
         result = false
         @connections.detect do |connection|
@@ -138,6 +149,30 @@ module OmniAuth
           end
         end
         result
+      end
+
+      # Search LDAP using supplied
+      # filter.
+      #
+      # example of args:
+      #  :filter => "(objectClas=organizationalUnit)" (required),
+      #
+      # @param args [Hash]
+      # @return [Array<Net::LDAP::Entry>]
+      def search(args = {})
+        data = []
+        @connections.inject(data) do |results, connection|
+          begin
+            connection.open do |me|
+              results << me.search(args.clone)
+            end
+          rescue Net::LDAP::LdapError => nldaperror
+            results << nldaperror.message
+          end
+          results
+        end
+
+        data
       end
 
       private
